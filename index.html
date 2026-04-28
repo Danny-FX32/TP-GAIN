@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Task Earn Platform</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 15px;
+      margin: 15px auto;
+      border-radius: 10px;
+      max-width: 400px;
+    }
+
+    input {
+      width: 90%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 5px;
+      border: none;
+    }
+
+    button {
+      padding: 10px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #38bdf8;
+      width: 100%;
+    }
+
+    button:hover {
+      background: #0ea5e9;
+    }
+
+    .task {
+      background: #334155;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+
+    #app {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ================= LOGIN PAGE ================= -->
+<div id="loginPage" class="card">
+  <h2>Login / Register</h2>
+
+  <input type="text" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+
+  <button onclick="login()">Login</button>
+  <button onclick="register()">Register</button>
+</div>
+
+<!-- ================= APP PAGE ================= -->
+<div id="app">
+
+  <h1>Task Earn Platform</h1>
+
+  <div class="card">
+    <h2>Welcome <span id="userEmail"></span></h2>
+    <h3 id="balance">0 Tokens</h3>
+    <button onclick="withdraw()">Withdraw (₦200 min)</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <div class="card">
+    <h2>Tasks</h2>
+
+    <div class="task">
+      Follow Page<br>
+      <button onclick="completeTask(20)">Earn 20</button>
+    </div>
+
+    <div class="task">
+      Watch Video<br>
+      <button onclick="completeTask(30)">Earn 30</button>
+    </div>
+
+    <div class="task">
+      Share Post<br>
+      <button onclick="completeTask(50)">Earn 50</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://js.paystack.co/v1/inline.js"></script>
+
+<script>
+  let user = JSON.parse(localStorage.getItem("user"));
+  let balance = 0;
+
+  const loginPage = document.getElementById("loginPage");
+  const app = document.getElementById("app");
+  const balanceText = document.getElementById("balance");
+  const userEmail = document.getElementById("userEmail");
+
+  // ================= AUTH =================
+  function register() {
+    let email = document.getElementById("email").value;
+    let password = document.getElementById("password").value;
+
+    if (!email || !password) return alert("Fill all fields");
+
+    let newUser = {
+      email,
+      password,
+      balance: 0
+    };
+
+    localStorage.setItem("user", JSON.stringify(newUser));
+    alert("Registered successfully! Now login.");
+  }
+
+  function login() {
+    let email = document.getElementById("email").value;
+    let password = document.getElementById("password").value;
+
+    let savedUser = JSON.parse(localStorage.getItem("user"));
+
+    if (!savedUser) return alert("No user found, register first");
+
+    if (email === savedUser.email && password === savedUser.password) {
+      user = savedUser;
+      balance = user.balance;
+
+      loginPage.style.display = "none";
+      app.style.display = "block";
+
+      userEmail.innerText = user.email;
+      updateUI();
+    } else {
+      alert("Wrong login details");
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem("user");
+    location.reload();
+  }
+
+  // ================= TASK SYSTEM =================
+  function completeTask(points) {
+    balance += points;
+    user.balance = balance;
+    localStorage.setItem("user", JSON.stringify(user));
+    updateUI();
+    alert("You earned " + points + " tokens!");
+  }
+
+  function updateUI() {
+    balanceText.innerText = balance + " Tokens";
+  }
+
+  // ================= PAYSTACK =================
+  function withdraw() {
+    if (balance < 10000) {
+      alert("You need at least 200 tokens");
+      return;
+    }
+
+    let handler = PaystackPop.setup({
+
+      // 🔥 PUT YOUR PAYSTACK PUBLIC KEY HERE
+      key: "pk_live_0f28dafe12303b9c6239b6e1cff17054d2b8474f",
+
+      email: user.email,
+      amount: balance * 100,
+      currency: "NGN",
+
+      callback: function(response) {
+        alert("Payment successful: " + response.reference);
+
+        balance = 0;
+        user.balance = 0;
+        localStorage.setItem("user", JSON.stringify(user));
+        updateUI();
+      },
+
+      onClose: function() {
+        alert("Transaction cancelled");
+      }
+    });
+
+    handler.openIframe();
+  }
+
+  // ================= AUTO LOGIN IF EXISTS =================
+  if (user) {
+    loginPage.style.display = "none";
+    app.style.display = "block";
+    balance = user.balance;
+    userEmail.innerText = user.email;
+    updateUI();
+  }
+</script>
+
+</body>
+</html>
